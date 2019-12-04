@@ -12,8 +12,15 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: handler.hello
-      Runtime: nodejs10.x
+      Runtime: nodejs12.x
       CodeUri: ./hello
+      Environment:
+        Variables:
+          QUEUE_NAME: !Ref MySqsQueue    
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName:
+              !GetAtt MySqsQueue.QueueName
       Events:
         HelloAPI:
           Type: Api
@@ -21,6 +28,25 @@ Resources:
             RestApiId: !Ref MyApi
             Path: /hello
             Method: GET
+  
+  MySQSQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.queue
+      Runtime: nodejs12.x
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySqsQueue.Arn
+            BatchSize: 1
+  
+  MySqsQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        ContentBasedDeduplication: true
+        QueueName: MyQueue.fifo
+        FifoQueue: true
   
 Outputs:
   Region:
